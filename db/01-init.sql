@@ -1,6 +1,10 @@
 -- Create roles
 CREATE ROLE anon LOGIN PASSWORD 'mysecretpassword';
 
+-- Create api schema
+DROP SCHEMA IF EXISTS api CASCADE;
+CREATE SCHEMA api;
+
 -- Grant usage on the schema
 GRANT USAGE ON SCHEMA api TO anon;
 
