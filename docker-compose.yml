@@ -37,5 +37,21 @@ services:
     volumes:
       - ./db/postgrest.conf:/etc/postgrest.conf
 
+  # Django Web Admin
+  web:
+    build: ./web
+    container_name: friend-map-web
+    restart: always
+    depends_on:
+      - postgrest
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-django-insecure-default-key-for-development}
+      - API_BASE_URL=http://postgrest:3000
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    volumes:
+      - ./web:/app
+
 volumes:
   postgres_data:
