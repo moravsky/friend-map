@@ -7,11 +7,11 @@ DECLARE
   user4_data json;
   user5_data json;
   
-  user1_id integer;
-  user2_id integer;
-  user3_id integer;
-  user4_id integer;
-  user5_id integer;
+  user1_id bigint;
+  user2_id bigint;
+  user3_id bigint;
+  user4_id bigint;
+  user5_id bigint;
 BEGIN
   -- Create test users and store their data
   user1_data := api.register_user('user1@example.com', 'password123', 'User One');
@@ -20,12 +20,12 @@ BEGIN
   user4_data := api.register_user('user4@example.com', 'password123', 'User Four');
   user5_data := api.register_user('user5@example.com', 'password123', 'User Five');
   
-  -- Extract user IDs from the returned JSON
-  user1_id := (user1_data->>'id')::integer;
-  user2_id := (user2_data->>'id')::integer;
-  user3_id := (user3_data->>'id')::integer;
-  user4_id := (user4_data->>'id')::integer;
-  user5_id := (user5_data->>'id')::integer;
+  -- Extract user IDs from the returned JSON (now bigint for snowflake IDs)
+  user1_id := (user1_data->>'id')::bigint;
+  user2_id := (user2_data->>'id')::bigint;
+  user3_id := (user3_data->>'id')::bigint;
+  user4_id := (user4_data->>'id')::bigint;
+  user5_id := (user5_data->>'id')::bigint;
 
   -- Create some friendships
   -- User 1 is friends with User 2 and User 3
