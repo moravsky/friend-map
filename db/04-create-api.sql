@@ -423,3 +423,35 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql;
+
+-- Function to get the latest locations of all users
+CREATE OR REPLACE FUNCTION api.get_latest_user_locations(
+  limit_count INTEGER DEFAULT 1000
+) RETURNS json
+SECURITY DEFINER
+AS $$
+DECLARE
+  result json;
+BEGIN
+  SELECT json_agg(
+    json_build_object(
+      'user_id', lul.user_id,
+      'user_name', u.name,
+      'user_email', u.email,
+      'geohash', lul.geohash,
+      'latitude', ST_Y(ST_GeomFromGeoHash(lul.geohash, 10)::geometry),
+      'longitude', ST_X(ST_GeomFromGeoHash(lul.geohash, 10)::geometry),
+      'recorded_at', lul.recorded_at
+    )
+  )
+  INTO result
+  FROM latest_user_locations lul
+  JOIN users u ON lul.user_id = u.id
+  LIMIT limit_count;
+  
+  RETURN json_build_object(
+    'count', json_array_length(COALESCE(result, '[]'::json)),
+    'locations', COALESCE(result, '[]'::json)
+  );
+END;
+$$ LANGUAGE plpgsql;

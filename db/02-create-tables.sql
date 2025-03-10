@@ -81,5 +81,14 @@ CREATE INDEX idx_location_history_geohash_prefix ON location_history(LEFT(geohas
 -- Convert to hypertable partitioned by time
 SELECT create_hypertable('location_history', 'recorded_at');
 
+-- Enable compression with user_id as segment by column
+ALTER TABLE location_history SET (
+  timescaledb.compress,
+  timescaledb.compress_segmentby = 'user_id'
+);
+
+-- Add compression policy (compress chunks older than 1 day)
+SELECT add_compression_policy('location_history', INTERVAL '1 day');
+
 -- Set 30-day retention policy
 SELECT add_retention_policy('location_history', INTERVAL '30 days');
