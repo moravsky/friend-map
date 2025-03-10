@@ -2,6 +2,24 @@
 
 {% block title %}Add User - Friend Map Admin{% endblock %}
 
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map-container {
+        height: 400px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    .location-info {
+        margin-top: 10px;
+        font-size: 0.9em;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-8 offset-md-2">
@@ -57,7 +75,25 @@
                         {% endif %}
                     </div>
                     
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <h4 class="mt-4 mb-3">User Location</h4>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.location_search.id_for_label }}" class="form-label">{{ form.location_search.label }}</label>
+                        {{ form.location_search }}
+                        <div class="form-text">Enter an address, city, or place name to search</div>
+                    </div>
+                    
+                    <div id="map-container"></div>
+                    
+                    <div class="location-info" id="location-info">
+                        Click on the map to set the user's location or use the search box above.
+                    </div>
+                    
+                    <!-- Hidden fields for location data -->
+                    {{ form.latitude }}
+                    {{ form.longitude }}
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                         <a href="{% url 'user_admin:user_list' %}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary">Create User</button>
                     </div>
@@ -66,4 +102,104 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- OpenStreetMap Nominatim for geocoding -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize map
+        var map = L.map('map-container').setView([0, 0], 2);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Variables to store marker and form fields
+        var marker;
+        var latitudeField = document.getElementById('{{ form.latitude.id_for_label }}');
+        var longitudeField = document.getElementById('{{ form.longitude.id_for_label }}');
+        var locationInfoDiv = document.getElementById('location-info');
+        var searchInput = document.getElementById('location-search');
+        
+        // Function to update location fields
+        function updateLocation(lat, lng) {
+            // Update hidden form fields
+            latitudeField.value = lat;
+            longitudeField.value = lng;
+            
+            // Update info text
+            locationInfoDiv.innerHTML = `Selected location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            
+            // Update or create marker
+            if (marker) {
+                marker.setLatLng([lat, lng]);
+            } else {
+                marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+                
+                // Update location when marker is dragged
+                marker.on('dragend', function() {
+                    var position = marker.getLatLng();
+                    updateLocation(position.lat, position.lng);
+                });
+            }
+        }
+        
+        // Handle map clicks
+        map.on('click', function(e) {
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        });
+        
+        // Handle location search
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submission
+                
+                var searchText = searchInput.value.trim();
+                if (searchText) {
+                    // Use OpenStreetMap Nominatim for geocoding
+                    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data && data.length > 0) {
+                                // Get first result
+                                var result = data[0];
+                                var lat = parseFloat(result.lat);
+                                var lng = parseFloat(result.lon);
+                                
+                                // Update map and form
+                                map.setView([lat, lng], 13);
+                                updateLocation(lat, lng);
+                            } else {
+                                locationInfoDiv.innerHTML = 'Location not found. Please try a different search.';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error searching location:', error);
+                            locationInfoDiv.innerHTML = 'Error searching location. Please try again.';
+                        });
+                }
+            }
+        });
+        
+        // Try to get user's current location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    map.setView([lat, lng], 13);
+                    updateLocation(lat, lng);
+                },
+                function(error) {
+                    console.log('Geolocation error:', error);
+                    // Default to a world view if geolocation fails
+                }
+            );
+        }
+    });
+</script>
 {% endblock %}

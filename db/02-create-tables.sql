@@ -54,3 +54,32 @@ CREATE TABLE friendships (
 -- Add index for faster friendship lookups
 CREATE INDEX idx_friendships_user_id_1 ON friendships(user_id_1);
 CREATE INDEX idx_friendships_user_id_2 ON friendships(user_id_2);
+
+-- Enable extensions - order is important
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+-- Create location_history table for tracking user locations
+DROP TABLE IF EXISTS location_history CASCADE;
+CREATE TABLE location_history (
+  id BIGINT NOT NULL DEFAULT generate_snowflake_id(),
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  geohash TEXT NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  -- Make the primary key a composite of id and recorded_at
+  -- This is required for TimescaleDB hypertables with primary keys
+  PRIMARY KEY (id, recorded_at)
+);
+
+-- Create indexes for faster location history queries
+CREATE INDEX idx_location_history_user_id ON location_history(user_id);
+CREATE INDEX idx_location_history_recorded_at ON location_history(recorded_at DESC);
+CREATE INDEX idx_location_history_geohash ON location_history(geohash);
+CREATE INDEX idx_location_history_geohash_prefix ON location_history(LEFT(geohash, 6));
+
+-- Convert to hypertable partitioned by time
+SELECT create_hypertable('location_history', 'recorded_at');
+
+-- Set 30-day retention policy
+SELECT add_retention_policy('location_history', INTERVAL '30 days');

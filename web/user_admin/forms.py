@@ -18,6 +18,24 @@ class UserForm(forms.Form):
         required=True,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
+    # Hidden fields for location data
+    latitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
+    longitude = forms.FloatField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
+    location_search = forms.CharField(
+        label="Search Location",
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search for a location...',
+            'id': 'location-search'
+        })
+    )
     
     def clean_email(self):
         """Validate email format"""
@@ -42,7 +60,9 @@ class UserForm(forms.Form):
         
         user = User(
             email=self.cleaned_data['email'],
-            name=self.cleaned_data['name']
+            name=self.cleaned_data['name'],
+            latitude=self.cleaned_data.get('latitude'),
+            longitude=self.cleaned_data.get('longitude')
         )
         # Add password as a separate attribute (not part of the model)
         user.password = self.cleaned_data['password']

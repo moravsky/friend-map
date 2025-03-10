@@ -8,11 +8,14 @@ class User:
     Represents a user in the system.
     This is not a Django model as we're using the REST API.
     """
-    def __init__(self, id=None, email=None, name=None, created_at=None):
+    def __init__(self, id=None, email=None, name=None, created_at=None,
+                 latitude=None, longitude=None):
         self.id = id
         self.email = email
         self.name = name
         self.created_at = created_at
+        self.latitude = latitude
+        self.longitude = longitude
 
     @classmethod
     def from_json(cls, json_data):

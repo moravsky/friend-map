@@ -43,7 +43,13 @@ class ApiClient:
         )
         
         if response.status_code in (200, 201):
-            return User.from_json(response.json())
+            created_user = User.from_json(response.json())
+            
+            # If location data is provided, save it to location_history
+            if hasattr(user, 'latitude') and hasattr(user, 'longitude') and user.latitude and user.longitude:
+                self.add_user_location(created_user.id, user.latitude, user.longitude)
+                
+            return created_user
         
         # Handle errors
         error_message = response.text
@@ -55,3 +61,23 @@ class ApiClient:
             pass
         
         raise Exception(f"Failed to create user: {error_message}")
+        
+    def add_user_location(self, user_id, latitude, longitude):
+        """Add a location history record for a user"""
+        data = {
+            'user_id': user_id,
+            'latitude': latitude,
+            'longitude': longitude
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/rpc/add_location",
+                headers=self.headers,
+                json=data
+            )
+            
+            if response.status_code not in (200, 201):
+                print(f"Warning: Failed to save location for user {user_id}: {response.text}")
+        except Exception as e:
+            print(f"Error saving location: {str(e)}")
