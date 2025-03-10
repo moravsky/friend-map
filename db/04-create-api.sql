@@ -119,8 +119,8 @@ $$ LANGUAGE plpgsql;
 -- Accepts either lat/lon or geohash
 CREATE OR REPLACE FUNCTION api.add_location(
   user_id BIGINT,
-  latitude DOUBLE DEFAULT NULL,
-  longitude DOUBLE DEFAULT NULL,
+  latitude DOUBLE PRECISION DEFAULT NULL,
+  longitude DOUBLE PRECISION DEFAULT NULL,
   geohash TEXT DEFAULT NULL,
   recorded_at TIMESTAMPTZ DEFAULT now()
 ) RETURNS json
@@ -129,8 +129,8 @@ AS $$
 DECLARE
   final_geohash TEXT;
   point_geom GEOMETRY;
-  final_latitude DOUBLE;
-  final_longitude DOUBLE;
+  final_latitude DOUBLE PRECISION;
+  final_longitude DOUBLE PRECISION;
   new_record RECORD;
 BEGIN
   -- Validate user exists
@@ -254,8 +254,8 @@ BEGIN
       ST_GeoHash(
         ST_SetSRID(
           ST_MakePoint(
-            (loc->>'longitude')::DOUBLE,
-            (loc->>'latitude')::DOUBLE
+            (loc->>'longitude')::DOUBLE PRECISION,
+            (loc->>'latitude')::DOUBLE PRECISION
           ),
           4326
         ),
@@ -439,8 +439,8 @@ BEGIN
       'user_name', u.name,
       'user_email', u.email,
       'geohash', lul.geohash,
-      'latitude', ST_Y(ST_GeomFromGeoHash(lul.geohash, 10)::geometry),
-      'longitude', ST_X(ST_GeomFromGeoHash(lul.geohash, 10)::geometry),
+      'latitude', ST_Y(ST_Centroid(ST_GeomFromGeoHash(lul.geohash))),
+      'longitude', ST_X(ST_Centroid(ST_GeomFromGeoHash(lul.geohash))),
       'recorded_at', lul.recorded_at
     )
   )
